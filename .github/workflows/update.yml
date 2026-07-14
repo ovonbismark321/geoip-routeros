@@ -1,12 +1,47 @@
 name: Update GeoIP RU
 
 on:
+  schedule:
+    - cron: "15 3 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  test:
+  update:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Repository is ready
-        run: echo "Repository is ready."
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache sing-box
+        id: cache-sing-box
+        uses: actions/cache@v4
+        with:
+          path: tools
+          key: sing-box-1.12.8-linux-amd64
+
+      - name: Download sing-box
+        if: steps.cache-sing-box.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p tools
+          wget -O sing-box.tar.gz \
+            https://github.com/SagerNet/sing-box/releases/download/v1.12.8/sing-box-1.12.8-linux-amd64.tar.gz
+
+          tar -xzf sing-box.tar.gz
+
+          cp sing-box-1.12.8-linux-amd64/sing-box tools/
+
+          chmod +x tools/sing-box
+
+      - name: Verify sing-box
+        run: |
+          tools/sing-box version
