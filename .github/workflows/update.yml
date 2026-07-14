@@ -1,0 +1,12 @@
+name: Update GeoIP RU
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository is ready
+        run: echo "Repository is ready."
