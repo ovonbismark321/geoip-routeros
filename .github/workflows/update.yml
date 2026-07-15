@@ -44,7 +44,7 @@ jobs:
             --output geoip-ru.json \
             geoip-ru.srs
 
-      - name: Generate RouterOS script
+           - name: Generate RouterOS script
         run: |
 
           mkdir -p output
@@ -52,17 +52,16 @@ jobs:
           {
             echo "/ip firewall address-list"
             echo
-            echo "remove [find list=\"GEOIP_RU\"]"
+            echo "remove [find list=\"GEOIP_RU\" comment=\"GEOIP_RU_Auto\"]"
             echo
 
             jq -r '
               .rules[0].ip_cidr[]
               | select(test(":") | not)
-              | "add list=GEOIP_RU address=\(.)"
+              | "add list=GEOIP_RU address=\(.) comment=\"GEOIP_RU_Auto\""
             ' geoip-ru.json
 
           } > output/geoip-ru.rsc
-
       - name: Check generated file
         run: |
 
