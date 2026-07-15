@@ -1,10 +1,17 @@
-name: Generate GEOIP_RU RSC
+name: Update GEOIP_RU
 
 on:
   workflow_dispatch:
 
+  schedule:
+    - cron: "15 3 * * *"
+
+permissions:
+  contents: write
+
 jobs:
   build:
+
     runs-on: ubuntu-latest
 
     env:
@@ -12,8 +19,7 @@ jobs:
 
     steps:
 
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Download sing-box
         run: |
@@ -25,7 +31,7 @@ jobs:
 
           chmod +x sing-box-${SINGBOX_VERSION}-linux-amd64/sing-box
 
-      - name: Download GEOIP RU
+      - name: Download geoip-ru.srs
         run: |
           wget -q \
             https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-ru.srs \
@@ -40,17 +46,47 @@ jobs:
 
       - name: Generate RouterOS script
         run: |
+
+          mkdir -p output
+
           {
             echo "/ip firewall address-list"
+            echo
+            echo "remove [find list=\"GEOIP_RU\"]"
+            echo
 
-            jq -r '.rules[0].ip_cidr[] |
-              "add list=GEOIP_RU address=\(.)"' \
-              geoip-ru.json
+            jq -r '
+              .rules[0].ip_cidr[]
+              | select(test(":") | not)
+              | "add list=GEOIP_RU address=\(.)"
+            ' geoip-ru.json
 
-          } > geoip-ru.rsc
+          } > output/geoip-ru.rsc
 
-      - name: Upload RSC
-        uses: actions/upload-artifact@v4
-        with:
-          name: geoip-ru-rsc
-          path: geoip-ru.rsc
+      - name: Check generated file
+        run: |
+
+          COUNT=$(grep -c '^add ' output/geoip-ru.rsc)
+
+          echo "IPv4 prefixes: $COUNT"
+
+          if [ "$COUNT" -lt 10000 ]; then
+            echo "Too few prefixes!"
+            exit 1
+          fi
+
+      - name: Commit changes
+        run: |
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add output/geoip-ru.rsc
+
+          if git diff --cached --quiet
+          then
+            echo "Nothing changed."
+          else
+            git commit -m "Update GEOIP_RU"
+            git push
+          fi
