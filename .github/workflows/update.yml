@@ -1,12 +1,21 @@
-- name: Download geoip-ru.srs
-  run: |
-    wget -q \
-      https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-ru.srs \
-      -O geoip-ru.srs
+name: Test SRS
 
-- name: Decompile
-  run: |
-    tools/sing-box \
-      rule-set decompile \
-      -o geoip-ru.json \
-      geoip-ru.srs
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download geoip-ru.srs
+        run: |
+          wget -q \
+            https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-ru.srs \
+            -O geoip-ru.srs
+
+      - name: Show file
+        run: |
+          ls -lh geoip-ru.srs
