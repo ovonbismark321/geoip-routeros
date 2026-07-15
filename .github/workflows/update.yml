@@ -19,7 +19,8 @@ jobs:
 
     steps:
 
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Download sing-box
         run: |
@@ -44,14 +45,38 @@ jobs:
             --output geoip-ru.json \
             geoip-ru.srs
 
-      - name: Generate RouterOS script
+      - name: Validate JSON and generate RouterOS script
         run: |
 
           mkdir -p output
 
+          if ! jq -e '.rules[0].ip_cidr' geoip-ru.json >/dev/null
+          then
+            echo "ip_cidr array not found!"
+            exit 1
+          fi
+
+          COUNT=$(jq '[.rules[0].ip_cidr[] | select(test(":")|not)] | length' geoip-ru.json)
+
+          echo "IPv4 prefixes: ${COUNT}"
+
+          if [ "${COUNT}" -lt 5000 ]
+          then
+            echo "Too few IPv4 prefixes!"
+            exit 1
+          fi
+
+          BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
           {
+
+            echo ":log info \"GEOIP_RU: SagerNet build ${BUILD_TIME} (${COUNT} IPv4 prefixes)\""
+            echo ":log info \"GEOIP_RU: update started\""
+            echo
+
             echo "/ip firewall address-list"
             echo
+
             echo "remove [find list=\"GEOIP_RU\" comment=\"GEOIP_RU_Auto\"]"
             echo
 
@@ -61,19 +86,10 @@ jobs:
               | "add list=GEOIP_RU address=\(.) comment=\"GEOIP_RU_Auto\""
             ' geoip-ru.json
 
+            echo
+            echo ":log info \"GEOIP_RU: update completed (${COUNT} IPv4 prefixes)\""
+
           } > output/geoip-ru.rsc
-          
-      - name: Check generated file
-        run: |
-
-          COUNT=$(grep -c '^add ' output/geoip-ru.rsc)
-
-          echo "IPv4 prefixes: $COUNT"
-
-          if [ "$COUNT" -lt 10000 ]; then
-            echo "Too few prefixes!"
-            exit 1
-          fi
 
       - name: Commit changes
         run: |
@@ -85,8 +101,10 @@ jobs:
 
           if git diff --cached --quiet
           then
-            echo "Nothing changed."
-          else
-            git commit -m "Update GEOIP_RU"
-            git push
+            echo "No changes."
+            exit 0
           fi
+
+          git commit -m "Update GEOIP_RU"
+
+          git push
