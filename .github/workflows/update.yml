@@ -1,88 +1,12 @@
-name: Update GEOIP_RU
+- name: Download geoip-ru.srs
+  run: |
+    wget -q \
+      https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-ru.srs \
+      -O geoip-ru.srs
 
-on:
-  workflow_dispatch:
-
-  schedule:
-    - cron: "15 3 * * *"
-
-permissions:
-  contents: write
-
-env:
-  SINGBOX_VERSION: "1.12.8"
-
-jobs:
-
-  build:
-
-    runs-on: ubuntu-latest
-
-    steps:
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Restore sing-box cache
-        id: cache-singbox
-        uses: actions/cache@v4
-        with:
-          path: tools
-          key: sing-box-${{ env.SINGBOX_VERSION }}
-
-      - name: Download sing-box
-        if: steps.cache-singbox.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p tools
-
-          wget -q \
-            https://github.com/SagerNet/sing-box/releases/download/v${SINGBOX_VERSION}/sing-box-${SINGBOX_VERSION}-linux-amd64.tar.gz \
-            -O sing-box.tar.gz
-
-          tar -xzf sing-box.tar.gz
-
-          cp sing-box-${SINGBOX_VERSION}-linux-amd64/sing-box tools/
-
-          chmod +x tools/sing-box
-
-      - name: Show sing-box version
-        run: |
-          tools/sing-box version
-
-      - name: Download rule-set
-        run: |
-          wget -q \
-            https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-ru.srs \
-            -O geoip-ru.srs
-
-      - name: Decompile
-        run: |
-          tools/sing-box rule-set decompile \
-            geoip-ru.srs \
-            -o geoip-ru.json
-
-      - name: Generate RouterOS script
-        run: |
-          python scripts/update.py
-
-      - name: Commit changes
-        run: |
-
-          git config user.name "github-actions"
-
-          git config user.email "github-actions@github.com"
-
-          git add output/
-
-          if git diff --cached --quiet
-          then
-              echo "No changes."
-          else
-              git commit -m "Update GEOIP_RU"
-              git push
-          fi
+- name: Decompile
+  run: |
+    tools/sing-box \
+      rule-set decompile \
+      -o geoip-ru.json \
+      geoip-ru.srs
