@@ -1,16 +1,20 @@
-name: Decompile SRS
+name: Generate GEOIP_RU RSC
 
 on:
   workflow_dispatch:
 
 jobs:
-  decompile:
+  build:
     runs-on: ubuntu-latest
 
     env:
       SINGBOX_VERSION: "1.12.0"
 
     steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download sing-box
         run: |
           wget -q \
@@ -21,7 +25,7 @@ jobs:
 
           chmod +x sing-box-${SINGBOX_VERSION}-linux-amd64/sing-box
 
-      - name: Download geoip-ru.srs
+      - name: Download GEOIP RU
         run: |
           wget -q \
             https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-ru.srs \
@@ -34,8 +38,19 @@ jobs:
             --output geoip-ru.json \
             geoip-ru.srs
 
-      - name: Upload JSON
+      - name: Generate RouterOS script
+        run: |
+          {
+            echo "/ip firewall address-list"
+
+            jq -r '.rules[0].ip_cidr[] |
+              "add list=GEOIP_RU address=\(.)"' \
+              geoip-ru.json
+
+          } > geoip-ru.rsc
+
+      - name: Upload RSC
         uses: actions/upload-artifact@v4
         with:
-          name: geoip-ru-json
-          path: geoip-ru.json
+          name: geoip-ru-rsc
+          path: geoip-ru.rsc
