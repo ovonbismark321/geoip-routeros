@@ -44,7 +44,7 @@ jobs:
             --output geoip-ru.json \
             geoip-ru.srs
 
-           - name: Generate RouterOS script
+      - name: Generate RouterOS script
         run: |
 
           mkdir -p output
@@ -62,6 +62,7 @@ jobs:
             ' geoip-ru.json
 
           } > output/geoip-ru.rsc
+          
       - name: Check generated file
         run: |
 
