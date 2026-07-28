@@ -3,7 +3,7 @@ name: Update GEOIP_RU
 on:
   workflow_dispatch:
   schedule:
-    - cron: "60 * * * *"
+    - cron: "0 * * * *"
 
 permissions:
   contents: write
