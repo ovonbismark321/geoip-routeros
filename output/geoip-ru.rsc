@@ -1,4 +1,4 @@
-:log info "GEOIP_RU: SagerNet build 2026-11-24T18:47:08Z (8740 IPv4 prefixes)"
+:log info "GEOIP_RU: SagerNet build 2026-11-25T02:58:56Z (8740 IPv4 prefixes)"
 :log info "GEOIP_RU: update started"
 
 /ip firewall address-list
